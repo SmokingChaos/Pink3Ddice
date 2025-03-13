@@ -2,7 +2,7 @@
  * Physics world setup for Neon Dice 2000
  */
 
-import { PHYSICS } from '../config.js';
+import { PHYSICS, FLOOR } from '../config.js';
 import { log } from '../utils/debug.js';
 
 /**
@@ -29,53 +29,81 @@ export function setupPhysicsWorld(RAPIER) {
   );
   world.createCollider(floorColliderDesc, floorBody);
   
-  // Add invisible walls to contain dice within the visible area
-  createBoundaryWall(RAPIER, world, 0, 20, 100, 40, 'front');  // Front wall
-  createBoundaryWall(RAPIER, world, 0, 20, -100, 40, 'back');  // Back wall
-  createBoundaryWall(RAPIER, world, 100, 20, 0, 40, 'right');  // Right wall
-  createBoundaryWall(RAPIER, world, -100, 20, 0, 40, 'left');  // Left wall
+  // Create a single composite boundary to contain dice
+  // This is more efficient than creating individual walls
+  createCompositeBoundary(RAPIER, world);
   
   log('Physics world created successfully');
   return world;
 }
 
 /**
- * Create a boundary wall to keep dice in the visible area
+ * Create a composite boundary to keep dice within the playing area
  * @param {Object} RAPIER - The Rapier physics library
  * @param {Object} world - The physics world
- * @param {number} x - X position
- * @param {number} y - Y position
- * @param {number} z - Z position
- * @param {number} size - Wall size
- * @param {string} position - Wall position identifier for logging
  */
-function createBoundaryWall(RAPIER, world, x, y, z, size, position) {
-  log(`Creating boundary wall: ${position}`);
+function createCompositeBoundary(RAPIER, world) {
+  log('Creating composite boundary');
   
-  const wallBodyDesc = RAPIER.RigidBodyDesc.fixed()
-    .setTranslation(x, y, z);
-  const wallBody = world.createRigidBody(wallBodyDesc);
+  // Create a single static rigid body for all boundaries
+  const boundaryBodyDesc = RAPIER.RigidBodyDesc.fixed();
+  const boundaryBody = world.createRigidBody(boundaryBodyDesc);
   
-  // Determine wall orientation based on position
-  let halfWidth, halfHeight, halfDepth;
+  // Size of the playing area (should be slightly larger than the visible floor)
+  const areaSize = FLOOR.size * 0.7; // 70% of the floor size (increased from 60%)
+  const wallHeight = 40;
+  const wallThickness = 2;
   
-  if (position === 'front' || position === 'back') {
-    // Front/back walls (X-Y plane)
-    halfWidth = size;
-    halfHeight = size;
-    halfDepth = 1;
-  } else {
-    // Left/right walls (Z-Y plane)
-    halfWidth = 1;
-    halfHeight = size;
-    halfDepth = size;
-  }
+  // Create a compound collider with all four walls
   
-  const wallColliderDesc = RAPIER.ColliderDesc.cuboid(
-    halfWidth,
-    halfHeight,
-    halfDepth
-  ).setRestitution(0.3);  // Add some bounce to the walls
+  // Front wall (positive Z)
+  const frontWallDesc = RAPIER.ColliderDesc.cuboid(
+    areaSize/2, // half width
+    wallHeight/2, // half height
+    wallThickness/2 // half depth
+  ).setTranslation(0, wallHeight/2, areaSize/2);
   
-  world.createCollider(wallColliderDesc, wallBody);
+  // Back wall (negative Z)
+  const backWallDesc = RAPIER.ColliderDesc.cuboid(
+    areaSize/2, 
+    wallHeight/2, 
+    wallThickness/2
+  ).setTranslation(0, wallHeight/2, -areaSize/2);
+  
+  // Right wall (positive X)
+  const rightWallDesc = RAPIER.ColliderDesc.cuboid(
+    wallThickness/2, 
+    wallHeight/2, 
+    areaSize/2
+  ).setTranslation(areaSize/2, wallHeight/2, 0);
+  
+  // Left wall (negative X)
+  const leftWallDesc = RAPIER.ColliderDesc.cuboid(
+    wallThickness/2, 
+    wallHeight/2, 
+    areaSize/2
+  ).setTranslation(-areaSize/2, wallHeight/2, 0);
+  
+  // Create all colliders at once - increased restitution for bouncier walls
+  world.createCollider(frontWallDesc.setRestitution(0.6), boundaryBody);
+  world.createCollider(backWallDesc.setRestitution(0.6), boundaryBody);
+  world.createCollider(rightWallDesc.setRestitution(0.6), boundaryBody);
+  world.createCollider(leftWallDesc.setRestitution(0.6), boundaryBody);
+  
+  // Add a very slight ramp to guide dice back to the center
+  // Reduced slope to prevent excessive movement toward center
+  const rampSlope = 0.05; // Reduced from 0.15
+  
+  // Create a ramp collider (invisible)
+  const rampDesc = RAPIER.ColliderDesc.cuboid(
+    areaSize, // width
+    5, // thickness
+    areaSize // depth
+  )
+  .setTranslation(0, -rampSlope, 0) // Slightly below the floor level
+  .setRotation({ x: rampSlope, y: 0, z: 0 }); // Slight rotation for the ramp
+  
+  world.createCollider(rampDesc.setRestitution(0.3).setFriction(0.7), boundaryBody);
+  
+  log('Composite boundary created successfully');
 }

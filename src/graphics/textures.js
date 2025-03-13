@@ -4,14 +4,42 @@
 
 import { log } from '../utils/debug.js';
 
+// Texture cache for dice faces
+const diceFaceCache = {};
+
 /**
- * Create a texture for a dice face with the specified number
+ * Get a texture for a dice face (using cache)
  * @param {Object} THREE - Three.js library
  * @param {number} value - Dice face value (1-6)
  * @param {number} color - Neon color as hex value
  * @returns {Object} - Canvas texture
  */
 export function createDiceFaceTexture(THREE, value, color) {
+  // Generate cache key
+  const cacheKey = `face_${value}_${color}`;
+  
+  // Check cache first
+  if (diceFaceCache[cacheKey]) {
+    return diceFaceCache[cacheKey];
+  }
+  
+  // Create new texture
+  const texture = generateDiceFaceTexture(THREE, value, color);
+  
+  // Store in cache
+  diceFaceCache[cacheKey] = texture;
+  
+  return texture;
+}
+
+/**
+ * Generate a texture for a dice face with the specified number
+ * @param {Object} THREE - Three.js library
+ * @param {number} value - Dice face value (1-6)
+ * @param {number} color - Neon color as hex value
+ * @returns {Object} - Canvas texture
+ */
+function generateDiceFaceTexture(THREE, value, color) {
   try {
     const size = 256; // Texture resolution - balancing quality and performance
     const canvas = document.createElement('canvas');

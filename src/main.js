@@ -5,12 +5,11 @@
  * the initialization and running of the 3D dice simulation.
  */
 
-import { DEBUG, DICE_COLORS } from './config.js';
+import { DEBUG, DICE_COLORS, CAMERA } from './config.js';
 import { initDebug, log, error } from './utils/debug.js';
 import { 
   loadDependencies, 
-  trackProgress, 
-  showError 
+  trackProgress 
 } from './utils/loader.js';
 import { createDice } from './physics/dice.js';
 import { setupPhysicsWorld } from './physics/world.js';
@@ -19,6 +18,39 @@ import { createFloor } from './graphics/floor.js';
 // Initialize debug if enabled
 initDebug(DEBUG);
 
+// Define error display function in case it's not imported correctly
+function showError(title, details, helpText) {
+  const loadingEl = document.getElementById('loading');
+  
+  // Clear existing content
+  loadingEl.innerHTML = '';
+  
+  // Create error message container
+  const errorEl = document.createElement('div');
+  errorEl.className = 'error-message';
+  
+  // Add error title
+  const titleEl = document.createElement('div');
+  titleEl.className = 'error-title';
+  titleEl.textContent = title;
+  errorEl.appendChild(titleEl);
+  
+  // Add error details
+  const detailsEl = document.createElement('div');
+  detailsEl.className = 'error-details';
+  detailsEl.textContent = details;
+  errorEl.appendChild(detailsEl);
+  
+  // Add help text
+  const helpEl = document.createElement('div');
+  helpEl.className = 'error-help';
+  helpEl.textContent = helpText;
+  errorEl.appendChild(helpEl);
+  
+  // Add to loading screen
+  loadingEl.appendChild(errorEl);
+}
+
 // Main application function
 async function initApp() {
   try {
@@ -26,6 +58,11 @@ async function initApp() {
     
     // Load dependencies (Three.js and Rapier)
     const { THREE, RAPIER, scene, camera, renderer } = await loadDependencies();
+    
+    // Apply camera tilt if configured
+    if (CAMERA.tilt) {
+      camera.rotation.z = CAMERA.tilt;
+    }
     
     // Track loading progress
     trackProgress(30, 'Setting up physics world...');
@@ -54,26 +91,32 @@ async function initApp() {
     // Define the roll dice function
     function rollDice() {
       dice.forEach((die, index) => {
-        // Stagger the dice a bit for more natural rolling
-        const offsetX = index * 0.5;
-        const offsetZ = index * 0.3;
-        const height = 8 + index * 2;
+        // Use wider spacing between dice
+        const offsetX = index * 4;  // Increased from 0.5
+        const offsetZ = index * 3;  // Increased from 0.3
+        const height = 8 + index * 3; // Higher starting position
         
-        die.reset(10 + offsetX, height, 10 + offsetZ);
-        
-        // Apply impulse for rolling
-        const force = 15 + Math.random() * 3;
-        die.applyImpulse(
-          -force, 
-          5 + Math.random() * 2, 
-          -force * (0.8 + Math.random() * 0.4)
+        // Position dice with more variation
+        die.reset(
+          8 + offsetX + (Math.random() * 2 - 1), // Add some randomness
+          height,
+          8 + offsetZ + (Math.random() * 2 - 1)  // Add some randomness
         );
         
-        // Apply random rotation
+        // Apply impulse for rolling - stronger and more varied
+        const force = 18 + Math.random() * 5;  // Increased force
+        
+        die.applyImpulse(
+          -force * (0.9 + Math.random() * 0.2), 
+          6 + Math.random() * 3,  // More upward force
+          -force * (0.7 + Math.random() * 0.3)
+        );
+        
+        // Apply stronger random rotation
         die.applyTorque(
-          (Math.random() - 0.5) * 10,
-          (Math.random() - 0.5) * 10,
-          (Math.random() - 0.5) * 10
+          (Math.random() - 0.5) * 15,  // Increased from 10
+          (Math.random() - 0.5) * 15,  // Increased from 10
+          (Math.random() - 0.5) * 15   // Increased from 10
         );
       });
     }

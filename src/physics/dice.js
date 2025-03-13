@@ -63,6 +63,9 @@ export function createDice(THREE, RAPIER, scene, world, color) {
   // Create physics body
   const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
     .setTranslation(0, 5, 0);
+    
+  // NOTE: We removed the setMass call as it's not supported in this version
+  
   const body = world.createRigidBody(bodyDesc);
   
   // Create collider
