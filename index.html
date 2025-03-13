@@ -2,182 +2,339 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>3D Neon Dice Game</title>
+  <title>3D Neon Dice Game with Rapier</title>
   <style>
-    body { margin: 0; overflow: hidden; background: #000; }
-    #rollButton {
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background: #000; 
+      font-family: Arial, sans-serif;
+    }
+    #instructions {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      padding: 10px 20px;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      text-align: center;
+      color: white;
       font-size: 16px;
-      z-index: 100;
-      cursor: pointer;
+      pointer-events: none;
+    }
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 20px;
+      z-index: 1000;
     }
   </style>
 </head>
 <body>
-  <button id="rollButton">Roll Dice</button>
-  <!-- Include Three.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Our code uses ES6 modules so we load cannon-es as a module -->
+  <div id="loading">Loading physics engine...</div>
+  <div id="instructions">Click anywhere to roll the dice</div>
+  
   <script type="module">
-    // Import cannon-es for physics simulation
-    import * as CANNON from 'https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js';
-    
-    // Create a Three.js scene
-    const scene = new THREE.Scene();
-    
-    // Setup camera with a top-down perspective
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 30, 0);
-    camera.lookAt(0, 0, 0);
-    
-    // Setup renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-    
-    // Add ambient and directional lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(10, 10, 5);
-    scene.add(directionalLight);
-    
-    // Create the physics world
-    const world = new CANNON.World({
-      gravity: new CANNON.Vec3(0, -9.82, 0)
-    });
-    world.broadphase = new CANNON.NaiveBroadphase();
-    world.solver.iterations = 10;
-    
-    // Create a static floor for the dice to roll on
-    const floorBody = new CANNON.Body({
-      mass: 0, // Static
-      shape: new CANNON.Plane(),
-      material: new CANNON.Material()
-    });
-    floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-    world.addBody(floorBody);
-    
-    // Create a floor mesh for visuals
-    const floorGeometry = new THREE.PlaneGeometry(50, 50);
-    const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x000000, side: THREE.DoubleSide });
-    const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-    floorMesh.rotation.x = Math.PI / 2;
-    scene.add(floorMesh);
-    
-    function createDiceFaceTexture(number, neonColor) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 256;
-      const ctx = canvas.getContext('2d');
-      
-      // Fill background black
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Setup text style for neon effect
-      ctx.font = 'bold 150px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'white';
-      // Convert neonColor (a number) to hex string
-      const hexColor = '#' + ('00000' + neonColor.toString(16)).slice(-6);
-      ctx.shadowColor = hexColor;
-      ctx.shadowBlur = 20;
-      
-      // Draw the number in the center
-      ctx.fillText(number, canvas.width / 2, canvas.height / 2);
-      
-      const texture = new THREE.CanvasTexture(canvas);
-      return texture;
-    }
-    
-    // Create a dice with numbered faces and glowing edges
-    function createDice(neonColor) {
-      const size = 1;
-      // Define the numbers for each face in the order: right, left, top, bottom, front, back
-      const faceNumbers = [1, 6, 2, 5, 3, 4];
-      const materials = faceNumbers.map(num => {
-        const texture = createDiceFaceTexture(num, neonColor);
-        return new THREE.MeshStandardMaterial({
-          color: 0x000000,
-          emissive: neonColor,
-          emissiveMap: texture,
-          emissiveIntensity: 1
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+    import RAPIER from 'https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.11.2/rapier.es.js';
+
+    // Main application
+    async function initApp() {
+      try {
+        // Initialize Rapier physics engine
+        await RAPIER.init();
+        document.getElementById('loading').style.display = 'none';
+        
+        // Create scene
+        const scene = new THREE.Scene();
+        
+        // Setup camera
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 20);
+        camera.lookAt(0, 0, 0);
+        
+        // Setup renderer with proper pixel ratio for sharp rendering
+        const renderer = new THREE.WebGLRenderer({ 
+          antialias: true,
+          alpha: true
         });
-      });
-      
-      const geometry = new THREE.BoxGeometry(size, size, size);
-      const diceMesh = new THREE.Mesh(geometry, materials);
-      scene.add(diceMesh);
-      
-      // Add a wireframe overlay to simulate glowing edges
-      const edges = new THREE.EdgesGeometry(geometry);
-      const lineMaterial = new THREE.LineBasicMaterial({ color: neonColor, linewidth: 2 });
-      const wireframe = new THREE.LineSegments(edges, lineMaterial);
-      diceMesh.add(wireframe);
-      
-      // Create the corresponding physics body
-      const diceShape = new CANNON.Box(new CANNON.Vec3(size / 2, size / 2, size / 2));
-      const diceBody = new CANNON.Body({
-        mass: 1,
-        shape: diceShape,
-        material: new CANNON.Material()
-      });
-      diceBody.position.set(Math.random() * 2 - 1, 5, Math.random() * 2 - 1);
-      world.addBody(diceBody);
-      
-      return { mesh: diceMesh, body: diceBody };
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+        
+        // Setup physics world
+        const gravity = { x: 0, y: -9.81, z: 0 };
+        const world = new RAPIER.World(gravity);
+        
+        // Create floor
+        const floorBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(0, 0, 0);
+        const floorBody = world.createRigidBody(floorBodyDesc);
+        const floorColliderDesc = RAPIER.ColliderDesc.cuboid(25, 0.1, 25); // half extents
+        world.createCollider(floorColliderDesc, floorBody);
+        
+        // Floor mesh
+        const floorGeometry = new THREE.PlaneGeometry(50, 50);
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+          color: 0x222222, 
+          side: THREE.DoubleSide,
+          roughness: 0.8,
+          metalness: 0.2
+        });
+        const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+        floorMesh.rotation.x = -Math.PI / 2;
+        floorMesh.receiveShadow = true;
+        scene.add(floorMesh);
+        
+        // Create boundary walls
+        function createWall(x, y, z, width, height, depth) {
+          const wallBodyDesc = RAPIER.RigidBodyDesc.fixed().setTranslation(x, y, z);
+          const wallBody = world.createRigidBody(wallBodyDesc);
+          const wallColliderDesc = RAPIER.ColliderDesc.cuboid(width/2, height/2, depth/2);
+          world.createCollider(wallColliderDesc, wallBody);
+          
+          // Visual representation (optional - can be commented out for invisible walls)
+          const wallGeometry = new THREE.BoxGeometry(width, height, depth);
+          const wallMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x444444,
+            transparent: true,
+            opacity: 0.1
+          });
+          const wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
+          wallMesh.position.set(x, y, z);
+          scene.add(wallMesh);
+        }
+        
+        // Create walls (instead of a dome)
+        const wallSize = 10;
+        const wallHeight = 8;
+        // Floor is at y=0, so walls need to be positioned at half their height
+        createWall(0, wallHeight/2, -wallSize/2, wallSize, wallHeight, 0.2); // Back wall
+        createWall(0, wallHeight/2, wallSize/2, wallSize, wallHeight, 0.2);  // Front wall
+        createWall(-wallSize/2, wallHeight/2, 0, 0.2, wallHeight, wallSize); // Left wall
+        createWall(wallSize/2, wallHeight/2, 0, 0.2, wallHeight, wallSize);  // Right wall
+        
+        // Function to create dice face texture
+        function createDiceFaceTexture(value, neonColor) {
+          const canvas = document.createElement('canvas');
+          canvas.width = 512; // Higher resolution for better quality
+          canvas.height = 512;
+          const ctx = canvas.getContext('2d');
+          
+          // Fill background black
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Setup neon effect
+          const hexColor = '#' + neonColor.toString(16).padStart(6, '0');
+          ctx.shadowColor = hexColor;
+          ctx.shadowBlur = 30;
+          
+          const pipRadius = 35;
+          const center = 256;
+          const offset = 128;
+          
+          ctx.fillStyle = 'white';
+          
+          function drawPip(x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, pipRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          
+          switch(value) {
+            case 1:
+              drawPip(center, center);
+              break;
+            case 2:
+              drawPip(center + offset, center - offset);
+              drawPip(center - offset, center + offset);
+              break;
+            case 3:
+              drawPip(center - offset, center - offset);
+              drawPip(center, center);
+              drawPip(center + offset, center + offset);
+              break;
+            case 4:
+              drawPip(center - offset, center - offset);
+              drawPip(center + offset, center - offset);
+              drawPip(center - offset, center + offset);
+              drawPip(center + offset, center + offset);
+              break;
+            case 5:
+              drawPip(center - offset, center - offset);
+              drawPip(center + offset, center - offset);
+              drawPip(center, center);
+              drawPip(center - offset, center + offset);
+              drawPip(center + offset, center + offset);
+              break;
+            case 6:
+              drawPip(center - offset, center - offset);
+              drawPip(center - offset, center);
+              drawPip(center - offset, center + offset);
+              drawPip(center + offset, center - offset);
+              drawPip(center + offset, center);
+              drawPip(center + offset, center + offset);
+              break;
+          }
+          
+          return new THREE.CanvasTexture(canvas);
+        }
+        
+        // Function to create a dice
+        function createDice(neonColor) {
+          const size = 1.5;
+          
+          // Define face numbers (standard dice configuration)
+          const faceNumbers = [1, 6, 2, 5, 3, 4]; // right, left, top, bottom, front, back
+          
+          const materials = faceNumbers.map(num => {
+            const texture = createDiceFaceTexture(num, neonColor);
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            
+            return new THREE.MeshStandardMaterial({
+              color: 0x000000,
+              emissive: neonColor,
+              emissiveMap: texture,
+              emissiveIntensity: 1,
+              roughness: 0.3,
+              metalness: 0.7
+            });
+          });
+          
+          // Create dice mesh
+          const geometry = new THREE.BoxGeometry(size, size, size);
+          const diceMesh = new THREE.Mesh(geometry, materials);
+          diceMesh.castShadow = true;
+          scene.add(diceMesh);
+          
+          // Add wireframe for edges
+          const edges = new THREE.EdgesGeometry(geometry);
+          const lineMaterial = new THREE.LineBasicMaterial({ 
+            color: neonColor,
+            linewidth: 2
+          });
+          const wireframe = new THREE.LineSegments(edges, lineMaterial);
+          diceMesh.add(wireframe);
+          
+          // Create physics body - using a single cuboid collider for stability
+          const diceBodyDesc = RAPIER.RigidBodyDesc.dynamic()
+            .setTranslation(Math.random() * 2 - 1, 5, Math.random() * 2 - 1);
+          
+          const diceBody = world.createRigidBody(diceBodyDesc);
+          
+          // Use a single cuboid collider for more stable physics
+          const boxColliderDesc = RAPIER.ColliderDesc.cuboid(size/2, size/2, size/2)
+            .setRestitution(0.3) // Bounciness
+            .setFriction(0.8);   // Friction
+          
+          world.createCollider(boxColliderDesc, diceBody);
+          
+          // Set damping for more realistic movement
+          diceBody.setLinearDamping(0.5);
+          diceBody.setAngularDamping(0.5);
+          
+          return { mesh: diceMesh, body: diceBody };
+        }
+        
+        // Create dice with neon colors
+        const dice1 = createDice(0xff00ff); // Pink
+        const dice2 = createDice(0x00ffff); // Cyan
+        
+        // Function to roll the dice
+        function rollDice() {
+          // Set starting positions
+          const height = 8;
+          
+          // Position dice with slight offset
+          dice1.body.setTranslation(new RAPIER.Vector3(-2, height, -2), true);
+          dice2.body.setTranslation(new RAPIER.Vector3(2, height, 2), true);
+          
+          // Reset velocities
+          dice1.body.setLinvel(new RAPIER.Vector3(0, 0, 0), true);
+          dice1.body.setAngvel(new RAPIER.Vector3(0, 0, 0), true);
+          dice2.body.setLinvel(new RAPIER.Vector3(0, 0, 0), true);
+          dice2.body.setAngvel(new RAPIER.Vector3(0, 0, 0), true);
+          
+          // Apply random impulses for more natural movement
+          const randomImpulse = () => (Math.random() - 0.5) * 5;
+          
+          dice1.body.applyImpulse(
+            new RAPIER.Vector3(randomImpulse(), 1, randomImpulse()), 
+            true
+          );
+          dice1.body.applyTorqueImpulse(
+            new RAPIER.Vector3(randomImpulse() * 2, randomImpulse() * 2, randomImpulse() * 2),
+            true
+          );
+          
+          dice2.body.applyImpulse(
+            new RAPIER.Vector3(randomImpulse(), 1, randomImpulse()),
+            true
+          );
+          dice2.body.applyTorqueImpulse(
+            new RAPIER.Vector3(randomImpulse() * 2, randomImpulse() * 2, randomImpulse() * 2),
+            true
+          );
+        }
+        
+        // Add click event listener
+        renderer.domElement.addEventListener('click', rollDice);
+        
+        // Initial roll
+        setTimeout(rollDice, 500);
+        
+        // Animation loop
+        function animate() {
+          requestAnimationFrame(animate);
+          
+          // Step the physics world
+          world.step();
+          
+          // Update dice positions from physics
+          [dice1, dice2].forEach(dice => {
+            const pos = dice.body.translation();
+            dice.mesh.position.set(pos.x, pos.y, pos.z);
+            
+            const rot = dice.body.rotation();
+            dice.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w);
+          });
+          
+          renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+      } catch (error) {
+        console.error('Failed to initialize application:', error);
+        document.getElementById('loading').innerHTML = 'Error loading physics engine. Please check the console.';
+      }
     }
     
-    // Create two dice:
-    // Dice 1: neon pink (0xff00ff)
-    // Dice 2: neon blue (0x00ffff)
-    const dice1 = createDice(0xff00ff);
-    const dice2 = createDice(0x00ffff);
-    
-    // Function to roll the dice by resetting positions and applying a random impulse
-    function rollDice() {
-      [dice1, dice2].forEach((dice, index) => {
-        // Reset the position
-        dice.body.position.set((index * 2 - 1) * 1.5, 5, Math.random() * 2 - 1);
-        // Reset velocity and angular velocity
-        dice.body.velocity.set(0, 0, 0);
-        dice.body.angularVelocity.set(0, 0, 0);
-        // Apply a random impulse to simulate a roll
-        const force = new CANNON.Vec3((Math.random() - 0.5) * 10, Math.random() * 5, (Math.random() - 0.5) * 10);
-        dice.body.applyImpulse(force, dice.body.position);
-      });
-    }
-    
-    // Bind the rollDice function to the button click
-    document.getElementById('rollButton').addEventListener('click', rollDice);
-    
-    // Animation loop: update physics and render the scene
-    const timeStep = 1 / 60;
-    function animate() {
-      requestAnimationFrame(animate);
-      world.step(timeStep);
-      
-      // Sync the Three.js mesh positions with their physics bodies
-      [dice1, dice2].forEach(dice => {
-        dice.mesh.position.copy(dice.body.position);
-        dice.mesh.quaternion.copy(dice.body.quaternion);
-      });
-      
-      renderer.render(scene, camera);
-    }
-    animate();
-    
-    // Adjust scene on window resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+    // Start the application
+    initApp();
   </script>
 </body>
 </html>
