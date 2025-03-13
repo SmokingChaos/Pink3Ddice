@@ -1,0 +1,146 @@
+/* Base styles */
+body { 
+    margin: 0; 
+    padding: 0;
+    overflow: hidden; 
+    background: #000; 
+    font-family: 'Courier New', monospace;
+  }
+  
+  canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10;
+  }
+  
+  /* Loading screen */
+  #loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .loading-title {
+    color: #ff3030;
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px #ff3030;
+  }
+  
+  .loading-title::after {
+    content: "DIGITAL REALITY SYSTEM";
+    display: block;
+    font-size: 14px;
+    margin-top: 10px;
+    opacity: 0.8;
+    text-align: center;
+  }
+  
+  .progress-container {
+    width: 300px;
+  }
+  
+  .progress-bar {
+    width: 100%;
+    height: 10px;
+    background: #111;
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ff3030, #ff30ff);
+    position: absolute;
+    transition: width 0.3s;
+  }
+  
+  .progress-text {
+    color: #00ffff;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+    min-height: 20px;
+  }
+  
+  /* Game interface */
+  #instructions {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 100;
+    text-shadow: 0 0 5px #ff3030, 0 0 10px #ff3030;
+  }
+  
+  #debug-info {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    color: #00ffff;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 100;
+    text-shadow: 0 0 3px #00ffff;
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    border-radius: 3px;
+    display: none;
+  }
+  
+  /* Error message */
+  .error-message {
+    color: #ff0000;
+    text-align: center;
+    max-width: 80%;
+  }
+  
+  .error-message .error-title {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .error-message .error-details {
+    font-size: 16px;
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+  
+  .error-message .error-help {
+    font-size: 14px;
+    color: #00ffff;
+    margin-top: 20px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .loading-title {
+      font-size: 22px;
+    }
+    
+    #instructions {
+      font-size: 14px;
+      bottom: 10px;
+    }
+    
+    .progress-container {
+      width: 250px;
+    }
+  }

@@ -1,74 +1,81 @@
-# 3D Neon Dice Game
+# Neon Dice 2000
 
 A web-based 3D dice rolling application with neon-themed visuals and realistic physics.
 
-## Overview
+## Project Structure
 
-This application provides an interactive 3D environment where users can roll virtual dice with neon visual effects. The dice feature realistic physics behavior, including bouncing, collisions, and proper rotational dynamics.
+This project has been reorganized with a modular structure to improve maintainability and allow for easier future enhancements:
 
-## Features
+```
+neon-dice-2000/
+├── index.html              # Main entry point
+├── assets/                 # Static assets
+│   └── css/                # Stylesheets
+│       └── style.css       # Main stylesheet
+├── src/                    # Source code
+│   ├── main.js             # Application entry point
+│   ├── config.js           # Configuration parameters
+│   ├── utils/              # Utility functions
+│   │   ├── loader.js       # Resource loader
+│   │   └── debug.js        # Debug utilities
+│   ├── graphics/           # Graphics-related code
+│   │   ├── textures.js     # Texture generation
+│   │   └── floor.js        # Floor creation
+│   └── physics/            # Physics-related code
+│       ├── world.js        # Physics world setup
+│       └── dice.js         # Dice physics implementation
+└── libs/                   # Local fallback libraries (optional)
+    ├── three.module.js     # Three.js local copy
+    └── rapier.es.js        # Rapier physics local copy
+```
 
-- **Realistic 3D Physics**: Utilizes the Rapier physics engine for accurate simulation of dice movement and collisions
-- **Neon Visual Theme**: Custom-designed dice with glowing neon edges and pips
-- **Interactive Controls**: Simple click interaction to roll the dice
-- **Responsive Design**: Adapts to different screen sizes and resolutions
-- **Shadow Effects**: Enhanced visual realism with proper lighting and shadows
-- **Performance Optimized**: Built with efficiency in mind for smooth animations
+## Key Features
 
-## Technical Details
-
-### Libraries Used
-
-- **Three.js (v0.160.0+)**: 3D rendering engine for visualizing the dice and environment
-- **Rapier3D (v0.11.2+)**: Physics simulation library for realistic dice movement
-
-### Implementation Highlights
-
-- Custom dice face textures generated dynamically with canvas
-- Proper collision boundaries using physics walls
-- Optimized physics parameters for realistic dice movement
-- Error handling for smooth user experience
+- **Modular Design**: Each component is separated into its own module with clear responsibilities.
+- **Configuration-Driven**: Most parameters are centralized in the config.js file for easy adjustments.
+- **Progressive Loading**: Improved loading experience with progress tracking and helpful error messages.
+- **Optimized Resources**: Balanced resource usage for better performance.
+- **Simplified Implementation**: Focused on core functionality for reliability.
 
 ## Getting Started
 
-### Prerequisites
-
-- A modern web browser with WebGL support (Chrome, Firefox, Safari, Edge)
-- JavaScript enabled
-
-### Installation
-
 1. Clone or download this repository
-2. No build steps required - this is a standalone HTML application
+2. Host it using a local web server (e.g., using `npx http-server`)
+3. Open the index.html file in your browser
 
-### Running the Application
+## Extending the Application
 
-1. Open the `index.html` file in your web browser
-2. Click anywhere on the screen to roll the dice
-3. Wait for the dice to settle to see the result
+This modular structure makes it easy to extend the application with new features:
 
-## Usage Tips
+### Adding Visual Effects
 
-- The dice will roll with random impulses each time for varied results
-- The walls are slightly transparent to maintain focus on the dice
-- The physics simulation ensures fair and random outcomes
+To add new visual effects, you can:
 
-## Customization Options
+1. Create new texture generation functions in `src/graphics/textures.js`
+2. Add new settings to the `config.js` file
+3. Implement the effects in the appropriate module
 
-If you wish to modify the application, here are some key areas you might want to adjust:
+### Enhancing Dice Behavior
 
-- **Dice Colors**: Change the neon colors by modifying the hexadecimal color values in the `createDice()` function
-- **Dice Size**: Adjust the size variable in the `createDice()` function
-- **Physics Parameters**: Fine-tune the restitution, friction, and damping values for different dice behavior
+To enhance dice behavior:
+
+1. Modify the physics parameters in `config.js`
+2. Extend the dice controller in `src/physics/dice.js`
+3. Add new event handling in `src/main.js`
+
+### Adding UI Elements
+
+To add new UI elements:
+
+1. Add HTML markup to `index.html`
+2. Add styles to `assets/css/style.css`
+3. Add interaction code in `src/main.js`
 
 ## Troubleshooting
 
-If you encounter issues:
-
-1. Ensure your browser is up to date
-2. Check that JavaScript is enabled
-3. Verify that WebGL is supported and enabled in your browser
-4. Check the browser console for any error messages
+- **Loading Issues**: Check browser console for errors. The application attempts to use CDN libraries first, then fallback to local copies.
+- **Performance Problems**: Adjust texture sizes in `config.js` and reduce complexity.
+- **Mobile Compatibility**: The application is responsive but may need further optimization for low-end devices.
 
 ## Browser Compatibility
 
@@ -80,8 +87,3 @@ If you encounter issues:
 ## License
 
 This project is available for open use.
-
-## Acknowledgments
-
-- Three.js for the 3D rendering capabilities
-- Dimforge's Rapier for the physics simulation
