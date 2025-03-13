@@ -263,31 +263,8 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
-        renderer.setClearColor(0x000000, 0); // Transparent background
+        renderer.setClearColor(0x000000, 0);
         document.body.appendChild(renderer.domElement);
-        
-        // Add ambient and directional lights
-        const ambientLight = new THREE.AmbientLight(0x000033, 0.4); // Blue-tinted ambient for futuristic feel
-        scene.add(ambientLight);
-        
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(10, 10, 5);
-        directionalLight.castShadow = true;
-        scene.add(directionalLight);
-        
-        // Add point lights for neon glow effect
-        const pinkLight = new THREE.PointLight(0xff00ff, 3, 20);
-        pinkLight.position.set(5, 5, 5);
-        scene.add(pinkLight);
-        
-        const cyanLight = new THREE.PointLight(0x00ffff, 3, 20);
-        cyanLight.position.set(-5, 5, -5);
-        scene.add(cyanLight);
-        
-        // Add blue light for digital aesthetic
-        const blueLight = new THREE.PointLight(0x3030ff, 2, 100);
-        blueLight.position.set(0, 30, -40);
-        scene.add(blueLight);
         
         // Setup physics world
         const gravity = { x: 0, y: -9.81, z: 0 };
@@ -298,199 +275,6 @@
         const floorBody = world.createRigidBody(floorBodyDesc);
         const floorColliderDesc = RAPIER.ColliderDesc.cuboid(80, 0.1, 80); // much larger half extents
         world.createCollider(floorColliderDesc, floorBody);
-        
-        // Function to create a Tron-style grid texture
-        const gridSize = 2048;
-        const gridCanvas = document.createElement('canvas');
-        gridCanvas.width = gridSize;
-        gridCanvas.height = gridSize;
-        const gridCtx = gridCanvas.getContext('2d');
-        
-        // Background
-        gridCtx.fillStyle = 'black';
-        gridCtx.fillRect(0, 0, gridSize, gridSize);
-        
-        // Major grid lines
-        const majorSpacing = gridSize / 10;
-        gridCtx.lineWidth = 3;
-        
-        // Draw major grid lines with glow
-        for (let i = 0; i <= 10; i++) {
-          const pos = i * majorSpacing;
-          
-          // Horizontal lines
-          gridCtx.strokeStyle = '#00ffff';
-          gridCtx.shadowColor = '#00ffff';
-          gridCtx.shadowBlur = 10;
-          gridCtx.beginPath();
-          gridCtx.moveTo(0, pos);
-          gridCtx.lineTo(gridSize, pos);
-          gridCtx.stroke();
-          
-          // Vertical lines
-          gridCtx.strokeStyle = '#0066ff';
-          gridCtx.shadowColor = '#0066ff';
-          gridCtx.shadowBlur = 10;
-          gridCtx.beginPath();
-          gridCtx.moveTo(pos, 0);
-          gridCtx.lineTo(pos, gridSize);
-          gridCtx.stroke();
-        }
-        
-        // Minor grid lines (thinner, less glow)
-        gridCtx.lineWidth = 1;
-        gridCtx.shadowBlur = 4;
-        const minorSpacing = majorSpacing / 5;
-        
-        for (let i = 0; i <= 50; i++) {
-          const pos = i * minorSpacing;
-          
-          // Only draw minor lines that aren't on top of major lines
-          if (i % 5 !== 0) {
-            // Horizontal minor lines
-            gridCtx.strokeStyle = '#00ffff';
-            gridCtx.shadowColor = '#00ffff';
-            gridCtx.globalAlpha = 0.5;
-            gridCtx.beginPath();
-            gridCtx.moveTo(0, pos);
-            gridCtx.lineTo(gridSize, pos);
-            gridCtx.stroke();
-            
-            // Vertical minor lines
-            gridCtx.strokeStyle = '#0066ff';
-            gridCtx.shadowColor = '#0066ff';
-            gridCtx.globalAlpha = 0.5;
-            gridCtx.beginPath();
-            gridCtx.moveTo(pos, 0);
-            gridCtx.lineTo(pos, gridSize);
-            gridCtx.stroke();
-          }
-        }
-        
-        // Reset
-        gridCtx.globalAlpha = 1.0;
-        gridCtx.shadowBlur = 0;
-        
-        const gridTexture = new THREE.CanvasTexture(gridCanvas);
-        gridTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        
-        // Floor mesh with Tron grid texture
-        const floorGeometry = new THREE.PlaneGeometry(160, 160);
-        const floorMaterial = new THREE.MeshStandardMaterial({ 
-          map: gridTexture,
-          emissive: 0x000033, // Subtle blue glow
-          emissiveMap: gridTexture,
-          emissiveIntensity: 0.4,
-          side: THREE.DoubleSide,
-          roughness: 0.3,
-          metalness: 0.9,
-          transparent: true,
-          opacity: 0.9 // More visible floor
-        });
-        const floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
-        floorMesh.rotation.x = -Math.PI / 2;
-        floorMesh.receiveShadow = true;
-        scene.add(floorMesh);
-        
-        // Create TRON-style mountain terrain with volume
-        const mountainWidth = 160;
-        const mountainDepth = 80;
-        const segments = 30; // More segments for sharper edges
-        const mountainGeometry = new THREE.PlaneGeometry(
-          mountainWidth,
-          mountainDepth,
-          segments,
-          segments / 2
-        );
-        
-        // Create dramatic mountain peaks and valleys
-        const vertices = mountainGeometry.attributes.position.array;
-        for (let i = 0; i < vertices.length; i += 3) {
-          const x = vertices[i];
-          const z = vertices[i + 2];
-          
-          // Create sharp, angular peaks with multiple layers
-          const distance = Math.abs(x / mountainWidth);
-          const baseHeight = 30; // Base height for all mountains
-          
-          // Multiple sine waves for more complex terrain
-          const peak1 = Math.abs(Math.sin(x * 0.3) * 25);
-          const peak2 = Math.abs(Math.cos(z * 0.4) * 20);
-          const peak3 = Math.abs(Math.sin((x + z) * 0.2) * 15);
-          
-          // Combine peaks with different weights
-          const combinedPeak = (peak1 * 0.5 + peak2 * 0.3 + peak3 * 0.2);
-          
-          // Add sharp edges by rounding to nearest multiple
-          const sharpness = 5;
-          const sharpPeak = Math.round(combinedPeak / sharpness) * sharpness;
-          
-          // Apply height with distance falloff and minimum height
-          vertices[i + 1] = Math.max(sharpPeak * (1 - distance * 0.7), baseHeight * (1 - distance));
-        }
-        
-        mountainGeometry.computeVertexNormals();
-        
-        // Create wireframe material with enhanced glow effect
-        const mountainMaterial = new THREE.ShaderMaterial({
-          uniforms: {
-            color: { value: new THREE.Color(0x00ffff) },
-            glowColor: { value: new THREE.Color(0x00ffff) },
-            time: { value: 0 }
-          },
-          vertexShader: `
-            varying vec3 vPosition;
-            varying vec3 vNormal;
-            void main() {
-              vPosition = position;
-              vNormal = normal;
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `,
-          fragmentShader: `
-            uniform vec3 color;
-            uniform vec3 glowColor;
-            uniform float time;
-            varying vec3 vPosition;
-            varying vec3 vNormal;
-            
-            void main() {
-              float intensity = mod(vPosition.y * 0.15 + time * 0.3, 1.0);
-              float normalIntensity = abs(dot(vNormal, vec3(0.0, 1.0, 0.0)));
-              vec3 finalColor = mix(color, glowColor, intensity * 0.7 + normalIntensity * 0.3);
-              gl_FragColor = vec4(finalColor, 0.9);
-            }
-          `,
-          transparent: true,
-          side: THREE.DoubleSide,
-          wireframe: true,
-          wireframeLinewidth: 1
-        });
-        
-        const mountainMesh = new THREE.Mesh(mountainGeometry, mountainMaterial);
-        mountainMesh.position.set(0, 0, -mountainDepth);
-        mountainMesh.rotation.x = -Math.PI / 4; // Steeper angle
-        scene.add(mountainMesh);
-        
-        // Add solid black material behind wireframe for depth
-        const mountainSolidMaterial = new THREE.MeshBasicMaterial({
-          color: 0x000000,
-          side: THREE.DoubleSide,
-          transparent: true,
-          opacity: 0.95
-        });
-        
-        const mountainSolidMesh = new THREE.Mesh(mountainGeometry, mountainSolidMaterial);
-        mountainSolidMesh.position.copy(mountainMesh.position);
-        mountainSolidMesh.rotation.copy(mountainMesh.rotation);
-        scene.add(mountainSolidMesh);
-        
-        // Update mountain animation in the animate loop
-        const originalAnimate = animate;
-        animate = function() {
-          mountainMaterial.uniforms.time.value += 0.005; // Slower animation
-          originalAnimate();
-        }
         
         // Function to create dice face texture
         function createDiceFaceTexture(value, neonColor) {
@@ -646,6 +430,153 @@
         const dice1 = createDice(0xff00ff); // Pink
         const dice2 = createDice(0x00ffff); // Cyan
         
+        // Create point lights for dice glow
+        const pinkLight = new THREE.PointLight(0xff00ff, 2, 10);
+        pinkLight.position.set(0, 5, 0);
+        scene.add(pinkLight);
+        
+        const cyanLight = new THREE.PointLight(0x00ffff, 2, 10);
+        cyanLight.position.set(0, 5, 0);
+        scene.add(cyanLight);
+        
+        // Create mountain material with shader
+        const mountainMaterial = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: 0 },
+            color: { value: new THREE.Color(0x00ffff) }
+          },
+          vertexShader: `
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            varying vec3 vViewDir;
+            
+            void main() {
+              vUv = uv;
+              vPosition = position;
+              vNormal = normalize(normalMatrix * normal);
+              vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+              vViewDir = normalize(cameraPosition - worldPosition.xyz);
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform vec3 color;
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            varying vec3 vViewDir;
+            
+            // Noise function for texture
+            vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+            vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+            vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+            
+            float snoise(vec3 v) {
+              const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+              const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+              
+              vec3 i  = floor(v + dot(v, C.yyy));
+              vec3 x0 = v - i + dot(i, C.xxx);
+              
+              vec3 g = step(x0.yzx, x0.xyz);
+              vec3 l = 1.0 - g;
+              vec3 i1 = min(g.xyz, l.zxy);
+              vec3 i2 = max(g.xyz, l.zxy);
+              
+              vec3 x1 = x0 - i1 + C.xxx;
+              vec3 x2 = x0 - i2 + C.yyy;
+              vec3 x3 = x0 - D.yyy;
+              
+              i = mod289(i);
+              vec4 p = permute(permute(permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+                
+              float n_ = 0.142857142857;
+              vec3 ns = n_ * D.wyz - D.xzx;
+              
+              vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+              
+              vec4 x_ = floor(j * ns.z);
+              vec4 y_ = floor(j - 7.0 * x_);
+              
+              vec4 x = x_ * ns.x + ns.yyyy;
+              vec4 y = y_ * ns.x + ns.yyyy;
+              vec4 h = 1.0 - abs(x) - abs(y);
+              
+              vec4 b0 = vec4(x.xy, y.xy);
+              vec4 b1 = vec4(x.zw, y.zw);
+              
+              vec4 s0 = floor(b0)*2.0 + 1.0;
+              vec4 s1 = floor(b1)*2.0 + 1.0;
+              vec4 sh = -step(h, vec4(0.0));
+              
+              vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+              vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+              
+              vec3 p0 = vec3(a0.xy, h.x);
+              vec3 p1 = vec3(a0.zw, h.y);
+              vec3 p2 = vec3(a1.xy, h.z);
+              vec3 p3 = vec3(a1.zw, h.w);
+              
+              vec4 norm0 = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+              p0 *= norm0.x;
+              p1 *= norm0.y;
+              p2 *= norm0.z;
+              p3 *= norm0.w;
+              
+              vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+              m = m * m;
+              m = m * m;
+              
+              return 42.0 * dot(m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+            }
+            
+            void main() {
+              // Create static grid pattern
+              float gridSize = 20.0;
+              vec2 grid = abs(fract(vUv * gridSize) - 0.5);
+              float line = min(grid.x, grid.y);
+              
+              // Create sharp, neon-like grid lines
+              float glow = 1.0 - smoothstep(0.0, 0.05, line);
+              
+              // Calculate reflection
+              vec3 reflection = reflect(-vViewDir, vNormal);
+              float reflectionIntensity = pow(max(dot(reflection, vViewDir), 0.0), 32.0);
+              
+              // Create obsidian-like base color with texture
+              vec3 obsidianColor = vec3(0.1, 0.1, 0.15);
+              
+              // Add subtle texture variation
+              float noise = snoise(vPosition * 2.0) * 0.1;
+              obsidianColor += vec3(noise);
+              
+              // Add reflection highlights with texture influence
+              vec3 finalColor = obsidianColor + vec3(reflectionIntensity * 0.5);
+              
+              // Add grid glow with texture influence
+              finalColor += color * glow * (0.3 + noise * 0.2);
+              
+              // Add subtle ambient glow
+              finalColor += vec3(0.05, 0.05, 0.05);
+              
+              gl_FragColor = vec4(finalColor, 1.0);
+            }
+          `,
+          side: THREE.DoubleSide
+        });
+        
+        // Create mountain geometry
+        const mountainGeometry = new THREE.PlaneGeometry(40, 40, 50, 50);
+        const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+        mountain.rotation.x = -Math.PI / 2;
+        mountain.position.y = -0.1;
+        scene.add(mountain);
+        
         // Function to roll the dice
         function rollDice() {
           try {
@@ -701,8 +632,149 @@
         // Initial roll
         setTimeout(rollDice, 500);
         
+        // Create render target for snapshot
+        const snapshotSize = 256;
+        const snapshotRenderTarget = new THREE.WebGLRenderTarget(snapshotSize, snapshotSize);
+        
+        // Create top-down camera for snapshot
+        const snapshotCamera = new THREE.OrthographicCamera(
+          -10, 10,  // left, right
+          10, -10,  // top, bottom
+          1, 1000   // near, far
+        );
+        snapshotCamera.position.set(0, 20, 0);
+        snapshotCamera.lookAt(0, 0, 0);
+        snapshotCamera.up.set(0, 0, -1);
+        
+        // Create snapshot container
+        const snapshotContainer = document.createElement('div');
+        snapshotContainer.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: rgba(0, 0, 0, 0.8);
+          border: 2px solid #00ffff;
+          border-radius: 4px;
+          padding: 10px;
+          display: none;
+          z-index: 1000;
+          box-shadow: 0 0 10px #00ffff;
+        `;
+        
+        // Create snapshot canvas
+        const snapshotCanvas = document.createElement('canvas');
+        snapshotCanvas.width = snapshotSize;
+        snapshotCanvas.height = snapshotSize;
+        snapshotContainer.appendChild(snapshotCanvas);
+        
+        // Create throw counter
+        const throwCounter = document.createElement('div');
+        throwCounter.style.cssText = `
+          color: #00ffff;
+          font-family: 'Courier New', monospace;
+          font-size: 14px;
+          text-align: center;
+          margin: 5px 0;
+          text-shadow: 0 0 5px #00ffff;
+        `;
+        throwCounter.textContent = 'Throws: 0';
+        snapshotContainer.appendChild(throwCounter);
+        
+        // Create throw again button
+        const throwButton = document.createElement('button');
+        throwButton.style.cssText = `
+          background: transparent;
+          border: 1px solid #00ffff;
+          color: #00ffff;
+          padding: 8px 16px;
+          font-family: 'Courier New', monospace;
+          font-size: 14px;
+          cursor: pointer;
+          width: 100%;
+          transition: all 0.3s ease;
+          text-shadow: 0 0 5px #00ffff;
+          box-shadow: 0 0 5px #00ffff;
+        `;
+        throwButton.textContent = 'THROW AGAIN';
+        throwButton.onmouseover = () => {
+          throwButton.style.background = 'rgba(0, 255, 255, 0.1)';
+          throwButton.style.boxShadow = '0 0 10px #00ffff';
+        };
+        throwButton.onmouseout = () => {
+          throwButton.style.background = 'transparent';
+          throwButton.style.boxShadow = '0 0 5px #00ffff';
+        };
+        snapshotContainer.appendChild(throwButton);
+        
+        document.body.appendChild(snapshotContainer);
+        
+        // Add throw counter variable
+        let throwCount = 0;
+        
+        // Function to check if dice have stopped moving
+        function checkDiceStopped() {
+          const velocityThreshold = 0.1;
+          const angularVelocityThreshold = 0.1;
+          
+          const dice1Stopped = 
+            dice1.body.linvel().length < velocityThreshold &&
+            dice1.body.angvel().length < angularVelocityThreshold;
+            
+          const dice2Stopped = 
+            dice2.body.linvel().length < velocityThreshold &&
+            dice2.body.angvel().length < angularVelocityThreshold;
+            
+          return dice1Stopped && dice2Stopped;
+        }
+        
+        // Function to take snapshot
+        function takeSnapshot() {
+          // Store current render target
+          const currentRenderTarget = renderer.getRenderTarget();
+          
+          // Render to snapshot target
+          renderer.setRenderTarget(snapshotRenderTarget);
+          renderer.render(scene, snapshotCamera);
+          
+          // Read pixels from render target
+          const buffer = new Uint8Array(snapshotSize * snapshotSize * 4);
+          renderer.readRenderTargetPixels(
+            snapshotRenderTarget,
+            0, 0,
+            snapshotSize, snapshotSize,
+            buffer
+          );
+          
+          // Create image data
+          const ctx = snapshotCanvas.getContext('2d');
+          const imageData = ctx.createImageData(snapshotSize, snapshotSize);
+          imageData.data.set(buffer);
+          
+          // Draw to canvas
+          ctx.putImageData(imageData, 0, 0);
+          
+          // Restore original render target
+          renderer.setRenderTarget(currentRenderTarget);
+          
+          // Show snapshot container
+          snapshotContainer.style.display = 'block';
+        }
+        
+        // Modify rollDice function
+        const originalRollDice = rollDice;
+        rollDice = function() {
+          throwCount++;
+          throwCounter.textContent = `Throws: ${throwCount}`;
+          snapshotContainer.style.display = 'none';
+          originalRollDice();
+        };
+        
+        // Add throw button click handler
+        throwButton.addEventListener('click', rollDice);
+        
         // Animation frame ID for proper cleanup
         let animationFrameId;
+        let diceStoppedTimeout;
         
         // Animation loop
         function animate() {
@@ -726,6 +798,23 @@
           
           cyanLight.position.copy(dice2.mesh.position);
           cyanLight.position.y += 3;
+          
+          // Update mountain animation
+          mountainMaterial.uniforms.time.value += 0.005;
+          
+          // Check if dice have stopped
+          if (checkDiceStopped()) {
+            if (!diceStoppedTimeout) {
+              diceStoppedTimeout = setTimeout(() => {
+                takeSnapshot();
+              }, 1000); // Wait 1 second after dice stop
+            }
+          } else {
+            if (diceStoppedTimeout) {
+              clearTimeout(diceStoppedTimeout);
+              diceStoppedTimeout = null;
+            }
+          }
           
           renderer.render(scene, camera);
         }
